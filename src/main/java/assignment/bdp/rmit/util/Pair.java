@@ -62,10 +62,21 @@ public class Pair implements Writable, WritableComparable<Pair> {
 
     @Override
     public int compareTo(Pair pair) {
-        if (!this.word1.equals(pair.word1)) {
-            return this.word1.compareTo(pair.word1);
+        int returnVal = this.word1.compareTo(pair.getWord1());
+        if (returnVal != 0) {
+            return returnVal;
         }
+        if (this.word2.toString().equals("*")) {
+            return -1;
+        } else if (pair.getWord2().toString().equals("*")) {
+            return 1;
+        }
+        return this.word2.compareTo(pair.getWord2());
+    }
 
-        return this.word2.compareTo(pair.word2);
+    @Override
+    public String toString() {
+        return "{word1=[" + this.word1 + "]" +
+                " neighbor=[" + this.word2 + "]}";
     }
 }

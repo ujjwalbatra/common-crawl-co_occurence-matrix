@@ -29,7 +29,7 @@ public class PairApproach {
 
     public static class PairMapper extends Mapper<Text, ArchiveReader, Pair, LongWritable> {
         private StringTokenizer lineTokenizer;
-        private LongWritable outVal = new LongWritable(1);
+        private LongWritable one = new LongWritable(1);
         private Pair pair = new Pair();
 
 
@@ -54,13 +54,13 @@ public class PairApproach {
                         } else {
                             while (this.lineTokenizer.hasMoreTokens()) {
                                 // grab each word from the line
-                                String[] words = this.lineTokenizer.nextToken().split("\\s|\\n|\\t|\\r|\\f");
+                                String[] words = this.lineTokenizer.nextToken().split("\\s+|\\n+|\\t+|\\r+|\\f+");
 
                                 for (int i = 0; i < words.length; i++) {
                                     this.pair.setWord1(words[i]);
                                     for (int j = i + 1; j < words.length - 1; j++) {
                                         pair.setWord2(words[j]);
-                                        context.write(this.pair, this.outVal);
+                                        context.write(this.pair, this.one);
                                     }
                                 }
                             }
@@ -79,16 +79,16 @@ public class PairApproach {
     }
 
 
-    public static class PairReducer extends Reducer<Pair, IntWritable, Pair, IntWritable> {
+    public static class PairReducer extends Reducer<Pair, LongWritable, Pair, LongWritable> {
         @Override
-        protected void reduce(Pair key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-            int value = 0;
+        protected void reduce(Pair key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+            long value = 0;
 
-            for (IntWritable val : values) {
-                value = val.get();
+            for (LongWritable val : values) {
+                value += val.get();
             }
 
-            context.write(key, new IntWritable(value));
+            context.write(key, new LongWritable(value));
         }
     }
 

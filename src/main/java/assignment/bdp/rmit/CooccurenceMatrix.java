@@ -45,11 +45,11 @@ public class CooccurenceMatrix extends Configured implements Tool {
         job.setJarByClass(CooccurenceMatrix.class);
         job.setNumReduceTasks(1);
 
-        String inputPath = "/user/ujjwalbatra/*.txt.gz";
+        String inputPath = "/user/ujjwalbatra/*.warc.wet.gz";
         LOG.info("Input path: " + inputPath);
         FileInputFormat.addInputPath(job, new Path(inputPath));
 
-        String outputPath = "/user/ujjwalbatra/test/";
+        String outputPath = "/user/hadoop/test/";
         FileSystem fs = FileSystem.newInstance(conf);
         if (fs.exists(new Path(outputPath))) {
             fs.delete(new Path(outputPath), true);
@@ -64,6 +64,7 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
         job.setMapperClass(PairApproach.PairMapper.class);
         job.setReducerClass(PairApproach.PairReducer.class);
+        job.setCombinerClass(PairApproach.PairReducer.class);
 
         if (job.waitForCompletion(true)) {
             return 0;
