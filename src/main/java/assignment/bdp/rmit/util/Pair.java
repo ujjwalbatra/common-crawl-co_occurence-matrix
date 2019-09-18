@@ -18,6 +18,11 @@ public class Pair implements Writable, WritableComparable<Pair> {
     private Text word1;
     private Text word2;
 
+    public Pair() {
+        this.word1 = new Text();
+        this.word2 = new Text();
+    }
+
     public Text getWord1() {
         return word1;
     }

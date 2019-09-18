@@ -27,9 +27,8 @@ public class PairApproach {
         NON_PLAIN_TEXT
     }
 
-    public static class PairMapper extends Mapper<Text, ArchiveReader, Pair, LongWritable> {
-        private StringTokenizer lineTokenizer;
-        private LongWritable one = new LongWritable(1);
+    public static class PairMapper extends Mapper<Text, ArchiveReader, Pair, IntWritable> {
+        private IntWritable one = new IntWritable(1);
         private Pair pair = new Pair();
 
 
@@ -39,6 +38,7 @@ public class PairApproach {
                 try {
                     // check if it is a plain text file
                     if (r.getHeader().getMimetype().equals("text/plain")) {
+                        int neighbors = context.getConfiguration().getInt("neighbors", 2);
                         context.getCounter(MAPPERCOUNTER.RECORDS_IN).increment(1);
                         LOG.debug(r.getHeader().getUrl() + " -- " + r.available());
 
@@ -46,22 +46,27 @@ public class PairApproach {
                         byte[] rawData = IOUtils.toByteArray(r, r.available());
                         String content = new String(rawData);
 
-                        // Grab each line from the document
-                        this.lineTokenizer = new StringTokenizer(content, "\n");
+                        String[] tokens = content.replaceAll("\\p{Punct}+", "").split("\\s+|\\n+|\\t+");
+                        System.out.println("tokens length ============================= " + tokens.length);
+                        System.out.println("words-------------------------------------------------------------------------");
+                        for (String t: tokens) {
+                            System.out.print(t + "-------------");
+                        }
+                        System.out.println("words-----------------------end--------------------------------------------------");
+                        if (tokens.length > 1) {
+                            for (int i = 0; i < tokens.length; i++) {
+                                this.pair.setWord1(tokens[i]);
 
-                        if (!this.lineTokenizer.hasMoreTokens()) {
-                            context.getCounter(MAPPERCOUNTER.EMPTY_PAGE_TEXT).increment(1);
-                        } else {
-                            while (this.lineTokenizer.hasMoreTokens()) {
-                                // grab each word from the line
-                                String[] words = this.lineTokenizer.nextToken().split("\\s+|\\n+|\\t+|\\r+|\\f+");
+                                System.out.println("[MAP]---neigh--------------------" + neighbors);
 
-                                for (int i = 0; i < words.length; i++) {
-                                    this.pair.setWord1(words[i]);
-                                    for (int j = i + 1; j < words.length - 1; j++) {
-                                        pair.setWord2(words[j]);
-                                        context.write(this.pair, this.one);
-                                    }
+                                int start = Math.max(i - neighbors, 0);
+                                int end = (i + neighbors >= tokens.length) ? tokens.length - 1 : i + neighbors;
+                                for (int j = start; j <= end; j++) {
+                                    System.out.println("[MAP]---pa ir--------------------" + pair);
+
+                                    if (j == i) continue;
+                                    this.pair.setWord2(tokens[j]);
+                                    context.write(this.pair, this.one);
                                 }
                             }
                         }
@@ -79,16 +84,17 @@ public class PairApproach {
     }
 
 
-    public static class PairReducer extends Reducer<Pair, LongWritable, Pair, LongWritable> {
+    public static class PairReducer extends Reducer<Pair, IntWritable, Pair, IntWritable> {
         @Override
-        protected void reduce(Pair key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
-            long value = 0;
+        protected void reduce(Pair key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int value = 0;
 
-            for (LongWritable val : values) {
+            for (IntWritable val : values) {
                 value += val.get();
             }
 
-            context.write(key, new LongWritable(value));
+            System.out.println("[RED]: " + key + value);
+            context.write(key, new IntWritable(value));
         }
     }
 
