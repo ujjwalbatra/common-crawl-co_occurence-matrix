@@ -81,7 +81,7 @@ public class Pair implements Writable, WritableComparable<Pair> {
 
     @Override
     public String toString() {
-        return "{word1=[" + this.word1 + "]" +
+        return "{word=[" + this.word1 + "]" +
                 " neighbor=[" + this.word2 + "]}";
     }
 }

@@ -1,13 +1,13 @@
 package main.java.assignment.bdp.rmit;
 
 import main.java.assignment.bdp.rmit.mapreduce.PairApproach;
+import main.java.assignment.bdp.rmit.util.Pair;
 import main.java.assignment.bdp.rmit.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -35,21 +35,21 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
     /**
      * Builds and runs the Hadoop job.
-     * @return	0 if the Hadoop job completes successfully and 1 otherwise.
+     *
+     * @return 0 if the Hadoop job completes successfully and 1 otherwise.
      */
     @Override
-    public int run(String[] strings) throws Exception {
+    public int run(String[] args) throws Exception {
         Configuration conf = getConf();
         //
         Job job = new Job(conf);
         job.setJarByClass(CooccurenceMatrix.class);
-        job.setNumReduceTasks(1);
 
-        String inputPath = "/user/ujjwalbatra/*.warc.wet.gz";
+        String inputPath = args[0];
         LOG.info("Input path: " + inputPath);
         FileInputFormat.addInputPath(job, new Path(inputPath));
 
-        String outputPath = "/user/hadoop/test/";
+        String outputPath = args[1];
         FileSystem fs = FileSystem.newInstance(conf);
         if (fs.exists(new Path(outputPath))) {
             fs.delete(new Path(outputPath), true);
@@ -59,12 +59,11 @@ public class CooccurenceMatrix extends Configured implements Tool {
         job.setInputFormatClass(WARCFileInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(LongWritable.class);
+        job.setOutputKeyClass(Pair.class);
+        job.setOutputValueClass(IntWritable.class);
 
         job.setMapperClass(PairApproach.PairMapper.class);
         job.setReducerClass(PairApproach.PairReducer.class);
-        job.setCombinerClass(PairApproach.PairReducer.class);
 
         if (job.waitForCompletion(true)) {
             return 0;
