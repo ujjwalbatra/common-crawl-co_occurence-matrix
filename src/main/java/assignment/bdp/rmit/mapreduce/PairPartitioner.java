@@ -18,15 +18,9 @@ public class PairPartitioner extends Partitioner<Pair, IntWritable> {
             return 0;
         }
 
-        if (key.hashCode() % numReduceTasks == 0) {
-            LOG.debug("Partitioning to reducer 0: " + key);
-            return 0;
-        } else if (key.hashCode() % numReduceTasks == 0) {
-            LOG.debug("Partitioning to reducer 1: " + key);
-            return 1;
-        } else {
-            LOG.debug("Partitioning to reducer 1: " + key);
-            return 2;
-        }
+        int reducerNumber = key.hashCode() % numReduceTasks;
+        LOG.debug("Partitioning to reducer " + reducerNumber + " :" + key);
+        return reducerNumber;
+
     }
 }
