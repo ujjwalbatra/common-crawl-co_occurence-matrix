@@ -1,6 +1,9 @@
 package main.java.assignment.bdp.rmit;
 
-import main.java.assignment.bdp.rmit.mapreduce.PairApproach;
+import main.java.assignment.bdp.rmit.mapreduce.PairMapper;
+import main.java.assignment.bdp.rmit.mapreduce.PairMapperLocalAggregation;
+import main.java.assignment.bdp.rmit.mapreduce.PairPartitioner;
+import main.java.assignment.bdp.rmit.mapreduce.PairReducer;
 import main.java.assignment.bdp.rmit.util.Pair;
 import main.java.assignment.bdp.rmit.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
@@ -45,25 +48,46 @@ public class CooccurenceMatrix extends Configured implements Tool {
         Job job = new Job(conf);
         job.setJarByClass(CooccurenceMatrix.class);
 
-        String inputPath = args[0];
-        LOG.info("Input path: " + inputPath);
-        FileInputFormat.addInputPath(job, new Path(inputPath));
+        String input = args[0];
+        String output = args[1];
+        String mode = args[2];
 
-        String outputPath = args[1];
+        LOG.info("Input path: " + input);
+        FileInputFormat.addInputPath(job, new Path(input));
+
         FileSystem fs = FileSystem.newInstance(conf);
-        if (fs.exists(new Path(outputPath))) {
-            fs.delete(new Path(outputPath), true);
+        if (fs.exists(new Path(output))) {
+            fs.delete(new Path(output), true);
         }
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
+
+        FileOutputFormat.setOutputPath(job, new Path(output));
         job.setInputFormatClass(WARCFileInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         job.setOutputKeyClass(Pair.class);
         job.setOutputValueClass(IntWritable.class);
 
-        job.setMapperClass(PairApproach.PairMapper.class);
-        job.setReducerClass(PairApproach.PairReducer.class);
+        if (mode.equalsIgnoreCase("no")) {
+
+            job.setMapperClass(PairMapper.class);
+            job.setReducerClass(PairReducer.class);
+
+        } else if (mode.equalsIgnoreCase("yes")) {
+
+            job.setMapperClass(PairMapper.class);
+            job.setCombinerClass(PairReducer.class);
+            job.setPartitionerClass(PairPartitioner.class);
+            job.setReducerClass(PairReducer.class);
+
+        } else if (mode.equalsIgnoreCase("inmapper")) {
+
+            job.setMapperClass(PairMapperLocalAggregation.class);
+            job.setPartitionerClass(PairPartitioner.class);
+            job.setReducerClass(PairReducer.class);
+
+        }
+
 
         if (job.waitForCompletion(true)) {
             return 0;
