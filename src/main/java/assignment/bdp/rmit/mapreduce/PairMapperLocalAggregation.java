@@ -25,7 +25,6 @@ public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair
 
     @Override
     public void map(Text key, ArchiveReader value, Context context) throws IOException {
-        Pair pair = new Pair();
 
         for (ArchiveRecord r : value) {
             try {
@@ -41,11 +40,12 @@ public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair
                     byte[] rawData = IOUtils.toByteArray(r, r.available());
                     String content = new String(rawData);
 
-                    String[] tokens = content.split("\\p{Punct}+|\\s+|\\n+|\\t+");
+                    String[] tokens = content.replaceAll("\\p{Punct}+", " ").split("\\s+|\\n+|\\t+");
 
                     HashMap<Pair, Integer> map = new HashMap<>();
 
                     for (int i = 0; i < tokens.length; i++) {
+                        Pair pair = new Pair();
                         if (tokens[i].length() == 0) continue;
 
                         pair.setWord1(tokens[i]);

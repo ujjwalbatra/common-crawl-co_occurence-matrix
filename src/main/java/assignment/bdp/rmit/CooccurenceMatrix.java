@@ -1,9 +1,6 @@
 package main.java.assignment.bdp.rmit;
 
-import main.java.assignment.bdp.rmit.mapreduce.PairMapper;
-import main.java.assignment.bdp.rmit.mapreduce.PairMapperLocalAggregation;
-import main.java.assignment.bdp.rmit.mapreduce.PairPartitioner;
-import main.java.assignment.bdp.rmit.mapreduce.PairReducer;
+import main.java.assignment.bdp.rmit.mapreduce.*;
 import main.java.assignment.bdp.rmit.util.Pair;
 import main.java.assignment.bdp.rmit.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
@@ -12,6 +9,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
@@ -50,7 +48,8 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
         String input = args[0];
         String output = args[1];
-        String mode = args[2];
+        String approach = args[2];
+        String mode = args[3];
 
         LOG.info("Input path: " + input);
         FileInputFormat.addInputPath(job, new Path(input));
@@ -68,24 +67,32 @@ public class CooccurenceMatrix extends Configured implements Tool {
         job.setOutputKeyClass(Pair.class);
         job.setOutputValueClass(IntWritable.class);
 
-        if (mode.equalsIgnoreCase("no")) {
+        CombineFileInputFormat.setMaxInputSplitSize(job, 128000000);
+        CombineFileInputFormat.setMinInputSplitSize(job, 128000000);
 
-            job.setMapperClass(PairMapper.class);
-            job.setReducerClass(PairReducer.class);
+        if (approach.equalsIgnoreCase("pair")) {
+            if (mode.equalsIgnoreCase("no")) {
 
-        } else if (mode.equalsIgnoreCase("yes")) {
+                job.setMapperClass(PairMapper.class);
+                job.setReducerClass(PairReducer.class);
 
-            job.setMapperClass(PairMapper.class);
-            job.setCombinerClass(PairReducer.class);
-            job.setPartitionerClass(PairPartitioner.class);
-            job.setReducerClass(PairReducer.class);
+            } else if (mode.equalsIgnoreCase("yes")) {
 
-        } else if (mode.equalsIgnoreCase("inmapper")) {
+                job.setMapperClass(PairMapper.class);
+                job.setCombinerClass(PairReducer.class);
+                job.setPartitionerClass(PairPartitioner.class);
+                job.setReducerClass(PairReducer.class);
 
-            job.setMapperClass(PairMapperLocalAggregation.class);
-            job.setPartitionerClass(PairPartitioner.class);
-            job.setReducerClass(PairReducer.class);
+            } else if (mode.equalsIgnoreCase("inmapper")) {
 
+                job.setMapperClass(PairMapperLocalAggregation.class);
+                job.setPartitionerClass(PairPartitioner.class);
+                job.setReducerClass(PairReducer.class);
+
+            }
+        } else if (approach.equalsIgnoreCase("strips")) {
+            job.setMapperClass(StripsMapper.class);
+            job.setReducerClass(StripsReducer.class);
         }
 
 

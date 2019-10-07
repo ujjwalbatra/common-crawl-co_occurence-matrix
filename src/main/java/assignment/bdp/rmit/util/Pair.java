@@ -71,17 +71,32 @@ public class Pair implements Writable, WritableComparable<Pair> {
         if (returnVal != 0) {
             return returnVal;
         }
-        if (this.word2.toString().equals("*")) {
-            return -1;
-        } else if (pair.getWord2().toString().equals("*")) {
-            return 1;
-        }
+
         return this.word2.compareTo(pair.getWord2());
     }
 
     @Override
+    public int hashCode() {
+        int result = this.word1 != null ? this.word1.hashCode() : 0;
+        result = 163 * result + (this.word2 != null ? this.word2.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Pair pair = (Pair) o;
+
+        if (this.word1 != null ? !this.word1.equals(pair.getWord1()) : pair.getWord1() != null) return false;
+        if (this.word2 != null ? !this.word2.equals(pair.getWord2()) : pair.getWord2() != null) return false;
+
+        return true;
+    }
+
+    @Override
     public String toString() {
-        return "{word=[" + this.word1 + "]" +
-                " neighbor=[" + this.word2 + "]}";
+        return "{word=[" + this.word1 + "] neighbor=[" + this.word2 + "]}";
     }
 }

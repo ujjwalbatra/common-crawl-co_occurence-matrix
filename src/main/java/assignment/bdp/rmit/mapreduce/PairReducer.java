@@ -15,7 +15,6 @@ public class PairReducer extends Reducer<Pair, IntWritable, Pair, IntWritable> {
             value += val.get();
         }
 
-        System.out.println("[RED]: " + key + value);
         context.write(key, new IntWritable(value));
     }
 }
