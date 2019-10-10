@@ -40,7 +40,7 @@ public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair
                     byte[] rawData = IOUtils.toByteArray(r, r.available());
                     String content = new String(rawData);
 
-                    String[] tokens = content.replaceAll("\\p{Punct}+", " ").split("\\s+|\\n+|\\t+");
+                    String[] tokens = content.split("\\s+|\\n+|\\t+");
 
                     HashMap<Pair, Integer> map = new HashMap<>();
 

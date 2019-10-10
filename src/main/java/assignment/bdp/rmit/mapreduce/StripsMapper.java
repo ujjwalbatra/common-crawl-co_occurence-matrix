@@ -39,7 +39,7 @@ public class StripsMapper extends Mapper<Text, ArchiveReader, Text, StripsMapWri
                     byte[] rawData = IOUtils.toByteArray(r, r.available());
                     String content = new String(rawData);
 
-                    String[] tokens = content.replaceAll("\\p{Punct}+", " ").split("\\s+|\\n+|\\t+");
+                    String[] tokens = content.split("\\s+|\\n+|\\t+");
 
                     for (int i = 0; i < tokens.length; i++) {
                         word.set(tokens[i]);

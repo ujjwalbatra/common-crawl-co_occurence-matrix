@@ -2,15 +2,18 @@ package main.java.assignment.bdp.rmit;
 
 import main.java.assignment.bdp.rmit.mapreduce.*;
 import main.java.assignment.bdp.rmit.util.Pair;
+import main.java.assignment.bdp.rmit.util.StripsMapWritable;
 import main.java.assignment.bdp.rmit.util.WARCFileInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.CombineFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
@@ -46,31 +49,37 @@ public class CooccurenceMatrix extends Configured implements Tool {
         Job job = new Job(conf);
         job.setJarByClass(CooccurenceMatrix.class);
 
-        String input = args[0];
-        String output = args[1];
+        String inputPath = args[0];
+        String outputPath = args[1];
         String approach = args[2];
         String mode = args[3];
 
-        LOG.info("Input path: " + input);
-        FileInputFormat.addInputPath(job, new Path(input));
+        LOG.info("Input path: " + inputPath);
+        FileInputFormat.addInputPath(job, new Path(inputPath));
 
         FileSystem fs = FileSystem.newInstance(conf);
-        if (fs.exists(new Path(output))) {
-            fs.delete(new Path(output), true);
+        if (fs.exists(new Path(outputPath))) {
+            fs.delete(new Path(outputPath), true);
         }
 
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-        FileOutputFormat.setOutputPath(job, new Path(output));
-        job.setInputFormatClass(WARCFileInputFormat.class);
+        if (inputPath.toLowerCase().contains("warc")) {
+            job.setInputFormatClass(WARCFileInputFormat.class);
+        } else {
+            job.setInputFormatClass(TextInputFormat.class);
+        }
+
         job.setOutputFormatClass(TextOutputFormat.class);
-
-        job.setOutputKeyClass(Pair.class);
-        job.setOutputValueClass(IntWritable.class);
 
         CombineFileInputFormat.setMaxInputSplitSize(job, 128000000);
         CombineFileInputFormat.setMinInputSplitSize(job, 128000000);
 
         if (approach.equalsIgnoreCase("pair")) {
+
+            job.setOutputKeyClass(Pair.class);
+            job.setOutputValueClass(IntWritable.class);
+
             if (mode.equalsIgnoreCase("no")) {
 
                 job.setMapperClass(PairMapper.class);
@@ -91,8 +100,16 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
             }
         } else if (approach.equalsIgnoreCase("strips")) {
+            job.setOutputKeyClass(Text.class);
+            job.setOutputValueClass(StripsMapWritable.class);
             job.setMapperClass(StripsMapper.class);
             job.setReducerClass(StripsReducer.class);
+
+            if (!mode.equalsIgnoreCase("no")) {
+                job.setCombinerClass(StripsReducer.class);
+                job.setPartitionerClass(StripsPartitioner.class);
+            }
+
         }
 
 

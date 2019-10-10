@@ -39,7 +39,7 @@ public class PairMapper extends Mapper<Text, ArchiveReader, Pair, IntWritable> {
                     byte[] rawData = IOUtils.toByteArray(r, r.available());
                     String content = new String(rawData);
 
-                    String[] tokens = content.replaceAll("\\p{Punct}+", " ").split("\\s+|\\n+|\\t+");
+                    String[] tokens = content.split("\\s+|\\n+|\\t+");
 
                     for (int i = 0; i < tokens.length; i++) {
                         if (tokens[i].length() == 0) continue;
