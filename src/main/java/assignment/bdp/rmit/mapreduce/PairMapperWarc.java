@@ -1,6 +1,6 @@
 package main.java.assignment.bdp.rmit.mapreduce;
 
-import main.java.assignment.bdp.rmit.util.StripsMapWritable;
+import main.java.assignment.bdp.rmit.util.Pair;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -11,11 +11,11 @@ import org.archive.io.ArchiveRecord;
 
 import java.io.IOException;
 
-public class StripsMapper extends Mapper<Text, ArchiveReader, Text, StripsMapWritable> {
-    private static final Logger LOG = Logger.getLogger(PairMapper.class);
+
+public class PairMapperWarc extends Mapper<Text, ArchiveReader, Pair, IntWritable> {
+    private static final Logger LOG = Logger.getLogger(PairMapperWarc.class);
     private IntWritable ONE = new IntWritable(1);
-    private StripsMapWritable stripsMapWritable = new StripsMapWritable();
-    private Text word = new Text();
+    private Pair pair = new Pair();
 
     protected enum MAPPERCOUNTER {
         RECORDS_IN,
@@ -24,14 +24,14 @@ public class StripsMapper extends Mapper<Text, ArchiveReader, Text, StripsMapWri
         NON_PLAIN_TEXT
     }
 
+
     @Override
-    protected void map(Text key, ArchiveReader value, Context context) throws IOException, InterruptedException {
+    public void map(Text key, ArchiveReader value, Context context) throws IOException {
         for (ArchiveRecord r : value) {
             try {
                 // check if it is a plain text file
                 if (r.getHeader().getMimetype().equals("text/plain")) {
                     int neighbors = context.getConfiguration().getInt("neighbors", 5);
-
                     context.getCounter(MAPPERCOUNTER.RECORDS_IN).increment(1);
                     LOG.debug(r.getHeader().getUrl() + " -- " + r.available());
 
@@ -42,24 +42,18 @@ public class StripsMapper extends Mapper<Text, ArchiveReader, Text, StripsMapWri
                     String[] tokens = content.split("\\s+|\\n+|\\t+");
 
                     for (int i = 0; i < tokens.length; i++) {
-                        word.set(tokens[i]);
-                        stripsMapWritable.clear();
+                        if (tokens[i].length() == 0) continue;
 
+                        this.pair.setWord1(tokens[i]);
                         int start = Math.max(i - neighbors, 0);
                         int end = (i + neighbors >= tokens.length) ? tokens.length - 1 : i + neighbors;
 
                         for (int j = start; j <= end; j++) {
-                            if (i == j) continue;
+                            if (j == i || tokens[j].length() == 0) continue;
 
-                            Text neighbor = new Text(tokens[j]);
-                            if (stripsMapWritable.containsKey(neighbor)) {
-                                IntWritable count = (IntWritable) stripsMapWritable.get(neighbor);
-                                count.set(count.get() + 1);
-                            } else {
-                                stripsMapWritable.put(neighbor, new IntWritable(1));
-                            }
+                            this.pair.setWord2(tokens[j]);
+                            context.write(this.pair, this.ONE);
                         }
-                        context.write(word, stripsMapWritable);
                     }
 
                 } else {
@@ -72,4 +66,5 @@ public class StripsMapper extends Mapper<Text, ArchiveReader, Text, StripsMapWri
             }
         }
     }
+
 }

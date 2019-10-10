@@ -1,6 +1,6 @@
 package main.java.assignment.bdp.rmit.mapreduce;
 
-import main.java.assignment.bdp.rmit.util.Pair;
+import main.java.assignment.bdp.rmit.util.StripsMapWritable;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -10,10 +10,11 @@ import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 
 import java.io.IOException;
-import java.util.HashMap;
 
-public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair, IntWritable> {
-    private static final Logger LOG = Logger.getLogger(PairMapper.class);
+public class StripsMapperWarc extends Mapper<Text, ArchiveReader, Text, StripsMapWritable> {
+    private static final Logger LOG = Logger.getLogger(PairMapperWarc.class);
+    private StripsMapWritable stripsMapWritable = new StripsMapWritable();
+    private Text word = new Text();
 
     protected enum MAPPERCOUNTER {
         RECORDS_IN,
@@ -22,15 +23,12 @@ public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair
         NON_PLAIN_TEXT
     }
 
-
     @Override
-    public void map(Text key, ArchiveReader value, Context context) throws IOException {
-
+    protected void map(Text key, ArchiveReader value, Context context) throws IOException, InterruptedException {
         for (ArchiveRecord r : value) {
             try {
                 // check if it is a plain text file
                 if (r.getHeader().getMimetype().equals("text/plain")) {
-
                     int neighbors = context.getConfiguration().getInt("neighbors", 5);
 
                     context.getCounter(MAPPERCOUNTER.RECORDS_IN).increment(1);
@@ -42,32 +40,26 @@ public class PairMapperLocalAggregation extends Mapper<Text, ArchiveReader, Pair
 
                     String[] tokens = content.split("\\s+|\\n+|\\t+");
 
-                    HashMap<Pair, Integer> map = new HashMap<>();
-
                     for (int i = 0; i < tokens.length; i++) {
-                        Pair pair = new Pair();
-                        if (tokens[i].length() == 0) continue;
+                        word.set(tokens[i]);
+                        stripsMapWritable.clear();
 
-                        pair.setWord1(tokens[i]);
                         int start = Math.max(i - neighbors, 0);
                         int end = (i + neighbors >= tokens.length) ? tokens.length - 1 : i + neighbors;
 
                         for (int j = start; j <= end; j++) {
-                            if (j == i || tokens[j].length() == 0) continue;
+                            if (i == j) continue;
 
-                            pair.setWord2(tokens[j]);
-                            if (map.containsKey(pair)) {
-                                map.replace(pair, map.get(pair) + 1);
+                            Text neighbor = new Text(tokens[j]);
+                            if (stripsMapWritable.containsKey(neighbor)) {
+                                IntWritable count = (IntWritable) stripsMapWritable.get(neighbor);
+                                count.set(count.get() + 1);
                             } else {
-                                map.put(pair, 1);
+                                stripsMapWritable.put(neighbor, new IntWritable(1));
                             }
                         }
+                        context.write(word, stripsMapWritable);
                     }
-
-                    for (Pair wordPair : map.keySet()) {
-                        context.write(wordPair, new IntWritable(map.get(wordPair)));
-                    }
-
 
                 } else {
                     context.getCounter(MAPPERCOUNTER.NON_PLAIN_TEXT).increment(1);

@@ -18,7 +18,7 @@ public class StripsPartitioner extends Partitioner<Text, StripsMapWritable> {
             return 0;
         }
 
-        int reducerNumber = key.hashCode() % numReduceTasks;
+        int reducerNumber = (key.hashCode() & Integer.MAX_VALUE) % numReduceTasks;
         LOG.debug("Partitioning to reducer " + reducerNumber + " :" + key);
         return reducerNumber;
     }

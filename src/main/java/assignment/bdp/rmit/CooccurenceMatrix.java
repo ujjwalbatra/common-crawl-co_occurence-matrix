@@ -53,6 +53,7 @@ public class CooccurenceMatrix extends Configured implements Tool {
         String outputPath = args[1];
         String approach = args[2];
         String mode = args[3];
+        boolean isWarc = inputPath.toLowerCase().contains("warc");
 
         LOG.info("Input path: " + inputPath);
         FileInputFormat.addInputPath(job, new Path(inputPath));
@@ -64,7 +65,7 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-        if (inputPath.toLowerCase().contains("warc")) {
+        if (isWarc) {
             job.setInputFormatClass(WARCFileInputFormat.class);
         } else {
             job.setInputFormatClass(TextInputFormat.class);
@@ -82,19 +83,27 @@ public class CooccurenceMatrix extends Configured implements Tool {
 
             if (mode.equalsIgnoreCase("no")) {
 
-                job.setMapperClass(PairMapper.class);
+                if (isWarc) job.setMapperClass(PairMapperWarc.class);
+                else job.setMapperClass(PairMapperText.class);
+
+                job.setMapperClass(PairMapperWarc.class);
                 job.setReducerClass(PairReducer.class);
 
             } else if (mode.equalsIgnoreCase("yes")) {
 
-                job.setMapperClass(PairMapper.class);
+                if (isWarc) job.setMapperClass(PairMapperWarc.class);
+                else job.setMapperClass(PairMapperText.class);
+
+
                 job.setCombinerClass(PairReducer.class);
                 job.setPartitionerClass(PairPartitioner.class);
                 job.setReducerClass(PairReducer.class);
 
             } else if (mode.equalsIgnoreCase("inmapper")) {
 
-                job.setMapperClass(PairMapperLocalAggregation.class);
+                if (isWarc) job.setMapperClass(PairMapperLocalAggregationWarc.class);
+                else job.setMapperClass(StripsMapperText.class);
+
                 job.setPartitionerClass(PairPartitioner.class);
                 job.setReducerClass(PairReducer.class);
 
@@ -102,8 +111,10 @@ public class CooccurenceMatrix extends Configured implements Tool {
         } else if (approach.equalsIgnoreCase("strips")) {
             job.setOutputKeyClass(Text.class);
             job.setOutputValueClass(StripsMapWritable.class);
-            job.setMapperClass(StripsMapper.class);
             job.setReducerClass(StripsReducer.class);
+
+            if (isWarc) job.setMapperClass(StripsMapperWarc.class);
+            else job.setMapperClass(StripsMapperText.class);
 
             if (!mode.equalsIgnoreCase("no")) {
                 job.setCombinerClass(StripsReducer.class);
@@ -111,6 +122,7 @@ public class CooccurenceMatrix extends Configured implements Tool {
             }
 
         }
+
 
 
         if (job.waitForCompletion(true)) {
